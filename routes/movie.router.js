@@ -6,10 +6,11 @@ const {
   createMovie,
   updateMovieById,
 } = require("../controller/movie.controller");
+const verifyToken = require("../middlewares/auth");
 
 const router = express.Router();
 
-router.get("/movies", getAllMovies);
+router.get("/movies", verifyToken, getAllMovies);
 router.get("/movie/:id", getMovieById);
 router.put("/movie/:id", updateMovieById);
 router.delete("/movie/:id", deleteMovieById);
