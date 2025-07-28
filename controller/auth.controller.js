@@ -1,6 +1,7 @@
 const { PrismaClient } = require("../generated/prisma");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { sendResponse, handleError } = require("../utils/authUtils");
 
 const prisma = new PrismaClient();
 
@@ -13,10 +14,11 @@ const register = async (req, res) => {
     });
 
     if (existingUser) {
-      const message = existingUser.username === username 
-        ? "Username already exists" 
-        : "Email already exists";
-      return res.status(400).json({ status: "error", message });
+      const message =
+        existingUser.username === username
+          ? "Username already exists"
+          : "Email already exists";
+      return sendResponse(res, 400, false, message);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -24,9 +26,9 @@ const register = async (req, res) => {
       data: { fullname, username, password: hashedPassword, email },
     });
 
-    res.json({ status: "success", message: "Registration successful" });
+    sendResponse(res, 200, true, "Registration successful");
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    handleError(res, error);
   }
 };
 
@@ -35,23 +37,29 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await prisma.user.findUnique({ where: { email } });
-    
+
     if (!user) {
-      return res.status(404).json({ status: "error", message: "User not found" });
+      return sendResponse(res, 404, false, "User not found");
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    
+
     if (!isPasswordValid) {
-      return res.status(401).json({ status: "error", message: "Invalid password" });
+      return sendResponse(res, 401, false, "Invalid password");
     }
 
-    const payload = { fullname: user.fullname, username: user.username, email: user.email };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const payload = {
+      fullname: user.fullname,
+      username: user.username,
+      email: user.email,
+    };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
-    res.json({ status: "success", message: "Login successful", token });
+    sendResponse(res, 200, true, "Login successful", { token });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    handleError(res, error);
   }
 };
 

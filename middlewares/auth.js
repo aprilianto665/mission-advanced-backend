@@ -11,18 +11,18 @@ const verifyToken = (req, res, next) => {
   }
 
   const token = authorization.split(" ")[1];
-  const secret = process.env.JWT_SECRET;
 
   try {
-    const jwtDecoded = jwt.verify(token, secret);
+    const jwtDecoded = jwt.verify(token, process.env.JWT_SECRET);
     req.userData = jwtDecoded;
+    next();
   } catch (error) {
-    res.status(401).json({
-      status: "error",
-      message: "Invalid token",
-    });
+    const message =
+      error.name === "TokenExpiredError"
+        ? "Token has expired"
+        : "Invalid token";
+    return res.status(401).json({ status: "error", message });
   }
-  next();
 };
 
 module.exports = verifyToken;

@@ -11,9 +11,9 @@ const verifyToken = require("../middlewares/auth");
 const router = express.Router();
 
 router.get("/movies", verifyToken, getAllMovies);
-router.get("/movie/:id", getMovieById);
-router.put("/movie/:id", updateMovieById);
-router.delete("/movie/:id", deleteMovieById);
-router.post("/movie", createMovie);
+router.get("/movie/:id", verifyToken, getMovieById);
+router.put("/movie/:id", verifyToken, updateMovieById);
+router.delete("/movie/:id", verifyToken, deleteMovieById);
+router.post("/movie", verifyToken, createMovie);
 
 module.exports = router;
