@@ -63,4 +63,6 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const verifyEmail = async (req, res) => {};
+
+module.exports = { register, login, verifyEmail };
