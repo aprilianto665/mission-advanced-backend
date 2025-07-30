@@ -1,4 +1,5 @@
 const { PrismaClient } = require("../generated/prisma");
+const bcrypt = require("bcrypt");
 const prisma = new PrismaClient();
 
 async function main() {
@@ -11,7 +12,8 @@ async function main() {
       duration: 119,
       releaseYear: 2022,
       ageRating: 17,
-      synopsis: "Rini dan keluarganya pindah ke apartemen untuk menghindari teror entitas jahat, namun mereka menyadari bahwa ancaman mengikuti mereka ke mana pun mereka pergi.",
+      synopsis:
+        "Rini dan keluarganya pindah ke apartemen untuk menghindari teror entitas jahat, namun mereka menyadari bahwa ancaman mengikuti mereka ke mana pun mereka pergi.",
       cast: JSON.stringify(["Tara Basro", "Bront Palarae", "Endy Arfian"]),
       creators: JSON.stringify(["Joko Anwar"]),
       rating: 7.2,
@@ -24,8 +26,13 @@ async function main() {
       duration: 110,
       releaseYear: 2022,
       ageRating: 17,
-      synopsis: "Enam mahasiswa KKN terjebak di desa terpencil yang penuh dengan misteri dan teror supernatural.",
-      cast: JSON.stringify(["Tissa Biani", "Adinda Thomas", "Achmad Megantara"]),
+      synopsis:
+        "Enam mahasiswa KKN terjebak di desa terpencil yang penuh dengan misteri dan teror supernatural.",
+      cast: JSON.stringify([
+        "Tissa Biani",
+        "Adinda Thomas",
+        "Achmad Megantara",
+      ]),
       creators: JSON.stringify(["Awi Suryadi"]),
       rating: 6.8,
     },
@@ -37,7 +44,8 @@ async function main() {
       duration: 110,
       releaseYear: 2018,
       ageRating: 13,
-      synopsis: "Kisah cinta remaja antara Dilan dan Milea di Bandung tahun 1990 yang penuh dengan kenangan manis.",
+      synopsis:
+        "Kisah cinta remaja antara Dilan dan Milea di Bandung tahun 1990 yang penuh dengan kenangan manis.",
       cast: JSON.stringify(["Iqbaal Ramadhan", "Vanesha Prescilla"]),
       creators: JSON.stringify(["Fajar Bustomi", "Pidi Baiq"]),
       rating: 7.5,
@@ -50,7 +58,8 @@ async function main() {
       duration: 101,
       releaseYear: 2011,
       ageRating: 18,
-      synopsis: "Tim elit polisi terjebak dalam gedung apartemen yang dikuasai gembong narkoba dan harus bertarung untuk bertahan hidup.",
+      synopsis:
+        "Tim elit polisi terjebak dalam gedung apartemen yang dikuasai gembong narkoba dan harus bertarung untuk bertahan hidup.",
       cast: JSON.stringify(["Iko Uwais", "Joe Taslim", "Donny Alamsyah"]),
       creators: JSON.stringify(["Gareth Evans"]),
       rating: 7.6,
@@ -63,7 +72,8 @@ async function main() {
       duration: 124,
       releaseYear: 2008,
       ageRating: 13,
-      synopsis: "Kisah inspiratif sepuluh anak dari keluarga miskin di Belitung yang berjuang menempuh pendidikan.",
+      synopsis:
+        "Kisah inspiratif sepuluh anak dari keluarga miskin di Belitung yang berjuang menempuh pendidikan.",
       cast: JSON.stringify(["Cut Mini Theo", "Ikranagara", "Tora Sudiro"]),
       creators: JSON.stringify(["Riri Riza"]),
       rating: 7.8,
@@ -76,8 +86,13 @@ async function main() {
       duration: 50,
       releaseYear: 2016,
       ageRating: 16,
-      synopsis: "Sekelompok anak di kota kecil menghadapi kekuatan supernatural dan eksperimen pemerintah rahasia.",
-      cast: JSON.stringify(["Millie Bobby Brown", "Finn Wolfhard", "David Harbour"]),
+      synopsis:
+        "Sekelompok anak di kota kecil menghadapi kekuatan supernatural dan eksperimen pemerintah rahasia.",
+      cast: JSON.stringify([
+        "Millie Bobby Brown",
+        "Finn Wolfhard",
+        "David Harbour",
+      ]),
       creators: JSON.stringify(["The Duffer Brothers"]),
       rating: 8.7,
     },
@@ -89,7 +104,8 @@ async function main() {
       duration: 47,
       releaseYear: 2008,
       ageRating: 18,
-      synopsis: "Seorang guru kimia SMA yang didiagnosis kanker mulai memproduksi dan menjual metamfetamin untuk mengamankan masa depan keluarganya.",
+      synopsis:
+        "Seorang guru kimia SMA yang didiagnosis kanker mulai memproduksi dan menjual metamfetamin untuk mengamankan masa depan keluarganya.",
       cast: JSON.stringify(["Bryan Cranston", "Aaron Paul", "Anna Gunn"]),
       creators: JSON.stringify(["Vince Gilligan"]),
       rating: 9.5,
@@ -102,18 +118,31 @@ async function main() {
       duration: 60,
       releaseYear: 2021,
       ageRating: 18,
-      synopsis: "Ratusan orang yang kesulitan finansial mengikuti permainan anak-anak dengan taruhan nyawa untuk memenangkan hadiah miliaran won.",
+      synopsis:
+        "Ratusan orang yang kesulitan finansial mengikuti permainan anak-anak dengan taruhan nyawa untuk memenangkan hadiah miliaran won.",
       cast: JSON.stringify(["Lee Jung-jae", "Park Hae-soo", "Wi Ha-joon"]),
       creators: JSON.stringify(["Hwang Dong-hyuk"]),
       rating: 8.0,
-    }
+    },
   ];
 
   for (const movie of movies) {
     await prisma.movie.create({ data: movie });
   }
 
-  console.log('Data dummy movie berhasil ditambahkan!');
+  const hashedPassword = await bcrypt.hash("admin123", 10);
+  await prisma.user.create({
+    data: {
+      fullname: "Administrator",
+      username: "admin",
+      password: hashedPassword,
+      email: "admin@example.com",
+      verifyToken: "admin-token",
+      isVerified: true,
+    },
+  });
+
+  console.log("Data dummy movie dan user admin berhasil ditambahkan!");
 }
 
 main()

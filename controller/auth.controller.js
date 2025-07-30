@@ -2,6 +2,8 @@ const { PrismaClient } = require("../generated/prisma");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { sendResponse, handleError } = require("../utils/authUtils");
+const { v4: uuidv4 } = require("uuid");
+const { sendEmail } = require("../services/email.service");
 
 const prisma = new PrismaClient();
 
@@ -22,11 +24,25 @@ const register = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const verifyToken = uuidv4();
     await prisma.user.create({
-      data: { fullname, username, password: hashedPassword, email },
+      data: {
+        fullname,
+        username,
+        password: hashedPassword,
+        email,
+        verifyToken,
+      },
     });
 
-    sendResponse(res, 200, true, "Registration successful");
+    await sendEmail(email, verifyToken);
+
+    sendResponse(
+      res,
+      200,
+      true,
+      "Registration successful. Please check your email to verify your account"
+    );
   } catch (error) {
     handleError(res, error);
   }
@@ -48,6 +64,10 @@ const login = async (req, res) => {
       return sendResponse(res, 401, false, "Invalid password");
     }
 
+    if (!user.isVerified) {
+      return sendResponse(res, 401, false, "Email is not verified");
+    }
+
     const payload = {
       fullname: user.fullname,
       username: user.username,
@@ -63,6 +83,33 @@ const login = async (req, res) => {
   }
 };
 
-const verifyEmail = async (req, res) => {};
+const verifyEmail = async (req, res) => {
+  const { token } = req.query;
+
+  try {
+    if (!token) {
+      return sendResponse(res, 400, false, "Verification token is required");
+    }
+
+    const user = await prisma.user.findFirst({ where: { verifyToken: token } });
+
+    if (!user) {
+      return sendResponse(res, 400, false, "Invalid verification token");
+    }
+
+    if (user.isVerified) {
+      return sendResponse(res, 400, false, "Email already verified");
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { isVerified: true },
+    });
+
+    sendResponse(res, 200, true, "Email verification successful");
+  } catch (error) {
+    handleError(res, error);
+  }
+};
 
 module.exports = { register, login, verifyEmail };
