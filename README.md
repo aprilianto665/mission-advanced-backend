@@ -1,6 +1,6 @@
 # Movie API Documentation
 
-API for movie data management with CRUD (Create, Read, Update, Delete) operations.
+API for movie data management with CRUD operations, user authentication, email verification, and file upload functionality.
 
 ## Installation and Setup Guide
 
@@ -20,16 +20,16 @@ API for movie data management with CRUD (Create, Read, Update, Delete) operation
    yarn install
    ```
 
-2. Configure database
+2. Configure environment variables
 
    - Create `.env` file in the project root
-   - Fill with your database configuration:
+   - Fill with your configuration:
      ```
      DATABASE_URL="mysql://username:password@localhost:3306/movie_db"
-     # or for PostgreSQL
-     # DATABASE_URL="postgresql://username:password@localhost:5432/movie_db"
-     # or for SQLite
-     # DATABASE_URL="file:./dev.db"
+     JWT_SECRET="your-jwt-secret-key"
+     EMAIL_SERVER="your-gmail@gmail.com"
+     EMAIL_PASSWORD="your-app-password"
+     BASE_URL="http://localhost:3000"
      ```
 
 3. Generate Prisma Client
@@ -44,7 +44,19 @@ API for movie data management with CRUD (Create, Read, Update, Delete) operation
    npx prisma migrate dev --name init
    ```
 
-5. Start the application
+5. Seed the database (optional)
+
+   ```bash
+   npx prisma db seed
+   ```
+
+6. Create uploads directory
+
+   ```bash
+   mkdir uploads
+   ```
+
+7. Start the application
 
    ```bash
    npm start
@@ -52,7 +64,7 @@ API for movie data management with CRUD (Create, Read, Update, Delete) operation
    yarn start
    ```
 
-6. The application will run at `http://localhost:3000`
+8. The application will run at `http://localhost:3000`
 
 ## Base URL
 
@@ -60,14 +72,126 @@ API for movie data management with CRUD (Create, Read, Update, Delete) operation
 http://localhost:3000
 ```
 
+## Authentication
+
+Most endpoints require authentication using JWT tokens. Include the token in the Authorization header:
+
+```
+Authorization: Bearer <your-jwt-token>
+```
+
 ## Endpoints
 
-### 1. Get All Movies
+### Authentication Endpoints
 
-Retrieve a list of all movies.
+#### 1. Register User
 
-- **URL**: `/movies`
+Register a new user account.
+
+- **URL**: `/register`
+- **Method**: `POST`
+- **Authentication**: Not required
+- **Request Body**:
+  ```json
+  {
+    "fullname": "John Doe",
+    "username": "johndoe",
+    "password": "password123",
+    "email": "john@example.com"
+  }
+  ```
+- **Response**: 200 OK
+  ```json
+  {
+    "status": "success",
+    "message": "Registration successful. Please check your email to verify your account"
+  }
+  ```
+
+#### 2. Login User
+
+Authenticate user and get JWT token.
+
+- **URL**: `/login`
+- **Method**: `POST`
+- **Authentication**: Not required
+- **Request Body**:
+  ```json
+  {
+    "email": "john@example.com",
+    "password": "password123"
+  }
+  ```
+- **Response**: 200 OK
+  ```json
+  {
+    "status": "success",
+    "message": "Login successful",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+- **Error Responses**:
+  - **404 Not Found** (User not found):
+    ```json
+    {
+      "status": "error",
+      "message": "User not found"
+    }
+    ```
+  - **401 Unauthorized** (Invalid password):
+    ```json
+    {
+      "status": "error",
+      "message": "Invalid password"
+    }
+    ```
+  - **401 Unauthorized** (Email not verified):
+    ```json
+    {
+      "status": "error",
+      "message": "Email is not verified"
+    }
+    ```
+
+#### 3. Verify Email
+
+Verify user email address using token from email.
+
+- **URL**: `/verify-email?token=<verification-token>`
 - **Method**: `GET`
+- **Authentication**: Not required
+- **Response**: 200 OK
+  ```json
+  {
+    "status": "success",
+    "message": "Email verification successful"
+  }
+  ```
+
+### Movie Endpoints
+
+#### 4. Get All Movies
+
+Retrieve a list of all movies with optional filtering, sorting, and search.
+
+- **URL**: `/movie`
+- **Method**: `GET`
+- **Authentication**: Required
+- **Query Parameters**:
+  - `filter` (optional): Field to filter by
+  - `search` (optional): Search term
+  - `orderBy` (optional): Field to sort by
+  - `sortOrder` (optional): Sort direction
+- **Valid Values**:
+  - `filter`: title, category, genre, cast, creators
+  - `category` values: FILM, SERIES (case insensitive)
+  - `orderBy`: id, title, category, duration, releaseYear, ageRating, rating
+  - `sortOrder`: asc, desc
+- **Example Usage**:
+  ```
+  GET /movie?filter=genre&search=action&orderBy=rating&sortOrder=desc
+  ```
+  This will search for movies with "Action" in their genre, ordered by rating in descending order.
 - **Response**: 200 OK
   ```json
   {
@@ -91,13 +215,28 @@ Retrieve a list of all movies.
     ]
   }
   ```
+- **Error Responses**:
+  - **404 Not Found** (Movies not found or invalid query parameters):
+    ```json
+    {
+      "status": "error",
+      "message": "Movies not found"
+    }
+    ```
+    This error occurs when:
+    - No movies match the search criteria
+    - Invalid `filter` field is used
+    - Invalid `orderBy` field is used
+    - Invalid `sortOrder` value is used
+    - Invalid `category` value is used (must be FILM or SERIES)
 
-### 2. Get Movie by ID
+#### 5. Get Movie by ID
 
 Retrieve movie details by ID.
 
-- **URL**: `/movies/:id`
+- **URL**: `/movie/:id`
 - **Method**: `GET`
+- **Authentication**: Required
 - **URL Parameters**: `id=[integer]` ID of the movie
 - **Response**: 200 OK
   ```json
@@ -128,12 +267,13 @@ Retrieve movie details by ID.
   }
   ```
 
-### 3. Create Movie
+#### 6. Create Movie
 
 Create a new movie.
 
-- **URL**: `/movies`
+- **URL**: `/movie`
 - **Method**: `POST`
+- **Authentication**: Required
 - **Request Body**:
   ```json
   {
@@ -179,12 +319,13 @@ Create a new movie.
   }
   ```
 
-### 4. Update Movie
+#### 7. Update Movie
 
 Update an existing movie.
 
-- **URL**: `/movies/:id`
+- **URL**: `/movie/:id`
 - **Method**: `PUT`
+- **Authentication**: Required
 - **URL Parameters**: `id=[integer]` ID of the movie
 - **Request Body**:
   ```json
@@ -232,12 +373,13 @@ Update an existing movie.
   }
   ```
 
-### 5. Delete Movie
+#### 8. Delete Movie
 
 Delete a movie by ID.
 
-- **URL**: `/movies/:id`
+- **URL**: `/movie/:id`
 - **Method**: `DELETE`
+- **Authentication**: Required
 - **URL Parameters**: `id=[integer]` ID of the movie
 - **Response**: 200 OK
   ```json
@@ -268,6 +410,40 @@ Delete a movie by ID.
   }
   ```
 
+### File Upload Endpoint
+
+#### 9. Upload File
+
+Upload a file to the server.
+
+- **URL**: `/upload`
+- **Method**: `POST`
+- **Authentication**: Required
+- **Content-Type**: `multipart/form-data`
+- **Request Body**: Form data with `file` field
+- **File Limits**: Maximum 5MB
+- **Response**: 200 OK
+  ```json
+  {
+    "status": "success",
+    "message": "File uploaded successfully",
+    "data": {
+      "fieldname": "file",
+      "originalname": "example.jpg",
+      "filename": "example.jpg",
+      "path": "uploads/example.jpg",
+      "size": 12345
+    }
+  }
+  ```
+- **Error Response**: 400 Bad Request
+  ```json
+  {
+    "status": "error",
+    "message": "File size exceeds 5MB limit"
+  }
+  ```
+
 ## Database Structure
 
 This application uses Prisma as an ORM with the following database schema:
@@ -292,6 +468,16 @@ model Movie {
   creators    Json
   rating      Float
 }
+
+model User {
+  id          Int     @id @default(autoincrement())
+  fullname    String
+  username    String  @unique
+  password    String
+  email       String  @unique
+  verifyToken String  @unique
+  isVerified  Boolean @default(false)
+}
 ```
 
 ## Troubleshooting
@@ -310,6 +496,7 @@ model Movie {
 This API returns HTTP status codes appropriate to the type of error:
 
 - **400 Bad Request**: Invalid request or validation failure
+- **401 Unauthorized**: Authentication required or invalid token
 - **404 Not Found**: Resource not found
 - **500 Internal Server Error**: Internal server error
 
@@ -321,3 +508,39 @@ All error responses have a consistent format:
   "message": "Error description"
 }
 ```
+
+### Authentication Errors
+
+For protected endpoints that require authentication, the following errors may occur:
+
+- **401 Unauthorized** (Invalid Token):
+  ```json
+  {
+    "status": "error",
+    "message": "Invalid Token"
+  }
+  ```
+- **401 Unauthorized** (Token Expired):
+  ```json
+  {
+    "status": "error",
+    "message": "Token has expired"
+  }
+  ```
+- **401 Unauthorized** (Invalid token format):
+  ```json
+  {
+    "status": "error",
+    "message": "Invalid token"
+  }
+  ```
+
+## Default Admin Account
+
+After running the seed command, a default admin account is created:
+
+- **Email**: `admin@example.com`
+- **Password**: `admin123`
+- **Status**: Email verified
+
+Use this account for initial testing and administration.

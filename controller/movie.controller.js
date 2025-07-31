@@ -1,6 +1,7 @@
 const { PrismaClient } = require("../generated/prisma");
 const prisma = new PrismaClient();
 
+const { buildOrderBy, buildWhereClause } = require("../services/movie.service");
 const {
   parseMovieFields,
   stringifyMovieFields,
@@ -10,8 +11,26 @@ const {
 
 const getAllMovies = async (req, res) => {
   try {
-    const result = await prisma.movie.findMany();
+    const { filter, orderBy, sortOrder, search } = req.query;
+
+    const whereClause = buildWhereClause(filter, search);
+    const orderByClause = buildOrderBy(orderBy, sortOrder);
+    
+    if (orderByClause === null) {
+      return sendErrorResponse(res, 404, "Movies not found");
+    }
+    
+    const result = await prisma.movie.findMany({
+      where: whereClause,
+      orderBy: orderByClause,
+    });
+
     const movies = result.map(parseMovieFields);
+
+    if (movies.length === 0 && (filter && search)) {
+      return sendErrorResponse(res, 404, "Movies not found");
+    }
+
     sendResponse(res, 200, "success", "Movies retrieved successfully", movies);
   } catch (error) {
     sendErrorResponse(res, 500, error.message);
