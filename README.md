@@ -50,13 +50,16 @@ API for movie data management with CRUD operations, user authentication, email v
    npx prisma db seed
    ```
 
-6. Create uploads directory
+   **Admin Account Created:**
+   After running the seed command, you can use the following admin credentials to login:
 
-   ```bash
-   mkdir uploads
-   ```
+   - **Email**: `admin@example.com`
+   - **Password**: `admin123`
+   - **Status**: Email already verified
 
-7. Start the application
+   Use these credentials with the `/login` endpoint to get your JWT token.
+
+6. Start the application
 
    ```bash
    npm start
@@ -64,7 +67,7 @@ API for movie data management with CRUD operations, user authentication, email v
    yarn start
    ```
 
-8. The application will run at `http://localhost:3000`
+7. The application will run at `http://localhost:3000`
 
 ## Base URL
 
